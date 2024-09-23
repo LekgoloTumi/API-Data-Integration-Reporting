@@ -1,13 +1,17 @@
 package com;
 
 import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.FileReader;
+import java.io.FileWriter;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.itextpdf.io.exceptions.IOException;
+
 public class FetchData {
-    public static void DisplayNodeData() {
+    public static void main(String[] args) {
         APIRequest fetchData = new APIRequest();
         
         try {
@@ -34,9 +38,17 @@ public class FetchData {
 
                     // Process node data
                     System.out.println("Node Data for ID " + nodeId + ": " + nodeData);
+
+                    // Write data from node to a .txt file
+                    BufferedWriter writer = new BufferedWriter(new FileWriter("C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\" + nodeId + "_data.txt"));
+                    writer.write(nodeData.toJSONString());
+                    writer.close();
+                    System.out.println("Data has been written to " + nodeId + ".txt.");
                 }
             }
 
+        } catch (IOException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
         }

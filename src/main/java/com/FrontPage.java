@@ -1,18 +1,18 @@
 package com;
 
+import com.itextpdf.io.exceptions.IOException;
 import com.itextpdf.io.image.ImageData;
 import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
-import com.itextpdf.layout.element.Paragraph;
 
-public class PDFGenator {
-    public static final String PDF_DEST_STRING = "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\GroundWorkReport.pdf";
+public class FrontPage {
+    public static final String PDF_DEST_STRING = "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\FrontPage.pdf";
 
     public static final String[] IMAGES = {
-        "./src/main/resources/image/GroundWorkHeader.png"
+        "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\src\\main\\resources\\image\\ImperialLogo.png"
     };
 
     public static void main(String[] args) throws Exception {
@@ -22,19 +22,16 @@ public class PDFGenator {
             PdfDocument pdf = new PdfDocument(writer);
             Document document = new Document(pdf);
 
-            //Front Page with company logo
+            // Front Page with company logo
             ImageData imgData = ImageDataFactory.create(IMAGES[0]);
             Image img = new Image(imgData);
-            document.add(img);
-            document.add(new Paragraph("--Page 1--"));
-
-            // Introduction Page
-            pdf.addNewPage();
-            document.add(new Paragraph("Introduction:"));
+            document.add(img);  // Add logo to the front page
 
             document.close();
             System.out.println("Pdf created successfully.");
 
+        } catch (IOException e) {
+            System.out.println("Error: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
         }
