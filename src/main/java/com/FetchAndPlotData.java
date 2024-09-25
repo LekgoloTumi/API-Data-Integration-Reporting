@@ -1,13 +1,17 @@
 package com;
 
+import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.URL;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.imageio.ImageIO;
 
 import org.jfree.chart.ChartFactory;
 import org.jfree.chart.ChartUtils;
@@ -26,13 +30,18 @@ import com.itextpdf.layout.element.Table;
 
 public class FetchAndPlotData {
 
-    public static final String PDF_DEST_STRING = "target\\TablePage.pdf";
+    public static final String PDF_DEST_STRING = "target/TablePage.pdf";
 
     public static void main(String[] args) {
         try {
-            String apiKey;
-            try (BufferedReader reader = new BufferedReader(new FileReader("src\\main\\resources\\api_key.txt"))) {
+            String apiKey, mapsApiKey;
+            // Read API keys
+            try (BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/api_key.txt"))) {
                 apiKey = reader.readLine().trim();
+            }
+            
+            try (BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/maps_api_key.txt"))) {
+                mapsApiKey = reader.readLine().trim();
             }
 
             String nodeUrl = "https://prod.omly.co/rest/v3/reports/" + apiKey + "/gw/node/list";
@@ -57,18 +66,20 @@ public class FetchAndPlotData {
                         String dataUrl = "https://prod.omly.co/rest/v3/reports/" + apiKey + "/gw/" + nodeId + "/export?from=" + fromDateTime + "&to=" + toDateTime;
 
                         // Initialize variables for storing node data
-                        String status = "Offline";  // Default status of node will be Offline
+                        String status = "Offline";  
                         String siteName = "N/A";
                         String location = "N/A";
                         String waterHead = "N/A";
                         String porePressure = "N/A";
-                        String airtemp = "N/A"; // Initialize temperature
+                        String airtemp = "N/A"; 
                         String date = "N/A";
+                        String latitude = "N/A";
+                        String longitude = "N/A";
                         String coordinates = "N/A";
-                        List<Double> timeSeries = new ArrayList<>(); // List to store time series data
-                        List<Double> waterHeadSeries = new ArrayList<>(); // List to store water head readings
-                        List<Double> porePressureSeries = new ArrayList<>(); // List to store pore pressure readings
-                        List<Double> temperatureSeries = new ArrayList<>(); // List to store temperature readings
+                        List<Double> timeSeries = new ArrayList<>(); 
+                        List<Double> waterHeadSeries = new ArrayList<>(); 
+                        List<Double> porePressureSeries = new ArrayList<>(); 
+                        List<Double> temperatureSeries = new ArrayList<>(); 
 
                         // Fetch node data and handle potential exceptions
                         try {
@@ -85,38 +96,27 @@ public class FetchAndPlotData {
                                     JSONObject resultData = (JSONObject) resultObj;
                                     date = getStringValue(resultData, "date-time");
                                     coordinates = getCoordinates(resultData);
-                                    status = "Online";  // Node is online if data is available
+                                    latitude = getStringValue(resultData, "latitude");
+                                    longitude = getStringValue(resultData, "longitude");
+                                    status = "Online"; 
 
                                     // Extract readings
                                     waterHead = getStringValue(resultData, "water-head");
                                     porePressure = getStringValue(resultData, "pore-pressure");
-                                    airtemp = getStringValue(resultData, "air-temp"); // Get temperature
+                                    airtemp = getStringValue(resultData, "air-temp"); 
 
                                     // Collecting readings
-                                    if (!waterHead.equals("N/A")) {
-                                        waterHeadSeries.add(Double.parseDouble(waterHead));
-                                    } else {
-                                        waterHeadSeries.add(Double.NaN); // Use NaN if not available
-                                    }
-
-                                    if (!porePressure.equals("N/A")) {
-                                        porePressureSeries.add(Double.parseDouble(porePressure));
-                                    } else {
-                                        porePressureSeries.add(Double.NaN); // Use NaN if not available
-                                    }
-
-                                    if (!airtemp.equals("N/A")) {
-                                        temperatureSeries.add(Double.parseDouble(airtemp));
-                                    } else {
-                                        temperatureSeries.add(Double.NaN); // Use NaN if not available
-                                    }
+                                    waterHeadSeries.add(waterHead.equals("N/A") ? Double.NaN : Double.parseDouble(waterHead));
+                                    porePressureSeries.add(porePressure.equals("N/A") ? Double.NaN : Double.parseDouble(porePressure));
+                                    temperatureSeries.add(airtemp.equals("N/A") ? Double.NaN : Double.parseDouble(airtemp));
 
                                     // Collecting time data for plotting
-                                    timeSeries.add(Double.parseDouble(getHourFromDateTime(date))); // Store hour from date-time
+                                    timeSeries.add(Double.parseDouble(getHourFromDateTime(date)));
                                 }
+
+                                plotMapCoordinates(mapsApiKey, latitude, longitude, nodeId);
                             }
                         } catch (Exception e) {
-                            // If an error occurs, keep the node marked as "Offline"
                             System.out.println("Error fetching data for Node ID: " + nodeId + ". Mark this node as Offline.");
                         }
 
@@ -136,10 +136,8 @@ public class FetchAndPlotData {
                         // Plotting the time series if data is available
                         if (!timeSeries.isEmpty()) {
                             if (!waterHeadSeries.isEmpty() && waterHeadSeries.stream().anyMatch(h -> !h.isNaN())) {
-                                // Plot Water Head and Temperature if water head data is available
                                 plotWaterHeadAndTemperature(nodeId, timeSeries, waterHeadSeries, temperatureSeries);
                             } else if (!porePressureSeries.isEmpty() && porePressureSeries.stream().anyMatch(p -> !p.isNaN())) {
-                                // Plot Pore Pressure and Temperature if water head is not available
                                 plotPorePressureAndTemperature(nodeId, timeSeries, porePressureSeries, temperatureSeries);
                             }
                         }
@@ -206,7 +204,7 @@ public class FetchAndPlotData {
 
         // Save the chart as an image
         try {
-            ChartUtils.saveChartAsPNG(new File("target\\" + nodeId + "_water_head_temp_plot.png"), chart, 800, 600);
+            ChartUtils.saveChartAsPNG(new File("target/" + nodeId + "_water_head_temp_plot.png"), chart, 800, 600);
             System.out.println("Chart saved for node: " + nodeId + " (Water Head and Temperature)");
         } catch (IOException e) {
             System.out.println("Error saving chart for Node ID: " + nodeId);
@@ -240,10 +238,25 @@ public class FetchAndPlotData {
 
         // Save the chart as an image
         try {
-            ChartUtils.saveChartAsPNG(new File("target\\" + nodeId + "_pore_pressure_temp_plot.png"), chart, 800, 600);
+            ChartUtils.saveChartAsPNG(new File("target/" + nodeId + "_pore_pressure_temp_plot.png"), chart, 800, 600);
             System.out.println("Chart saved for node: " + nodeId + " (Pore Pressure and Temperature)");
         } catch (IOException e) {
             System.out.println("Error saving chart for Node ID: " + nodeId);
+        }
+    }
+
+    // Method to plot map with coordinates
+    public static void plotMapCoordinates(String mapsApiKey, String latitude, String longitude, String nodeId) {
+        try {
+            String mapUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" + latitude + "," + longitude
+                          + "&zoom=14&size=600x300&markers=color:red%7C" + latitude + "," + longitude
+                          + "&key=" + mapsApiKey;
+
+            BufferedImage image = ImageIO.read(new URL(mapUrl));
+            ImageIO.write(image, "png", new File("target/" + nodeId + "_map_coordinates.png"));
+            System.out.println("Map image saved for node: " + nodeId);
+        } catch (IOException e) {
+            System.out.println("Error fetching map for Node ID: " + nodeId);
         }
     }
 }
