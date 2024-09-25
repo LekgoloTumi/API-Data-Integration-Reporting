@@ -3,6 +3,7 @@ package com;
 import java.awt.image.BufferedImage;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
@@ -10,6 +11,8 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.ZipEntry;
+import java.util.zip.ZipOutputStream;
 
 import javax.imageio.ImageIO;
 
@@ -21,16 +24,21 @@ import org.jfree.data.xy.XYSeriesCollection;
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
+import com.itextpdf.io.image.ImageDataFactory;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Cell;
+import com.itextpdf.layout.element.Image;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 
 public class FetchAndPlotData {
 
     public static final String PDF_DEST_STRING = "target/TablePage.pdf";
+    public static final String KMZ_DEST_STRING = "target/nodes_path.kmz";
+    public static final String NODE_DATAPLOT_DEST_STRING = "target/nodes_dataplot_path.pdf";
+    public static final String NODE_COORD_DEST_STRING = "target/nodes_coord_path.pdf";
 
     public static void main(String[] args) {
         try {
@@ -39,7 +47,7 @@ public class FetchAndPlotData {
             try (BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/api_key.txt"))) {
                 apiKey = reader.readLine().trim();
             }
-            
+
             try (BufferedReader reader = new BufferedReader(new FileReader("src/main/resources/maps_api_key.txt"))) {
                 mapsApiKey = reader.readLine().trim();
             }
@@ -57,6 +65,12 @@ public class FetchAndPlotData {
                     table.addHeaderCell(new Cell().add(new Paragraph("Node ID")));
                     table.addHeaderCell(new Cell().add(new Paragraph("Details")));
                     ZonedDateTime currentDate = ZonedDateTime.now();
+
+                    // For KMZ Path creation
+                    List<String> coordinatesList = new ArrayList<>();
+
+                    // For pdf creation
+                    List<String> nodeIDs = new ArrayList<>();
 
                     // Loop through nodes
                     for (Object node : nodesArray) {
@@ -114,6 +128,12 @@ public class FetchAndPlotData {
                                     timeSeries.add(Double.parseDouble(getHourFromDateTime(date)));
                                 }
 
+                                // Collecting coordinates for KMZ
+                                coordinatesList.add(longitude + "," + latitude + ",0");
+
+                                // Collect nodes for generation of pdfs
+                                nodeIDs.add(nodeId);
+
                                 plotMapCoordinates(mapsApiKey, latitude, longitude, nodeId);
                             }
                         } catch (Exception e) {
@@ -145,6 +165,14 @@ public class FetchAndPlotData {
 
                     // Add the table to the PDF document
                     document.add(table);
+
+                    // Create KMZ file with coordinates path
+                    createKMZFile(coordinatesList);
+
+                    // Create pdfs for node data chart and node coordinates
+                    generateTimeSeriesPDF(nodeIDs);
+                    generateNodeCoordinatesPDF(nodeIDs);
+
                 }
 
                 System.out.println("PDF with node data created successfully.");
@@ -177,6 +205,21 @@ public class FetchAndPlotData {
         return dateTime.split("T")[1].split(":")[0]; // Extract hour as a string
     }
 
+    // Method to plot map with coordinates
+    public static void plotMapCoordinates(String mapsApiKey, String latitude, String longitude, String nodeId) {
+        try {
+            String mapUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" + latitude + "," + longitude
+                          + "&zoom=14&size=600x300&markers=color:red%7C" + latitude + "," + longitude
+                          + "&key=" + mapsApiKey;
+
+            BufferedImage image = ImageIO.read(new URL(mapUrl));
+            ImageIO.write(image, "png", new File("target/" + nodeId + "_map_coordinates.png"));
+            System.out.println("Map image saved for node: " + nodeId);
+        } catch (IOException e) {
+            System.out.println("Error fetching map for Node ID: " + nodeId);
+        }
+    }
+
     // Method to plot Water Head and Temperature
     public static void plotWaterHeadAndTemperature(String nodeId, List<Double> timeSeries, List<Double> waterHeadSeries, List<Double> temperatureSeries) {
         XYSeries waterHeadSeriesPlot = new XYSeries("Water Head (cm)");
@@ -195,19 +238,12 @@ public class FetchAndPlotData {
         dataset.addSeries(waterHeadSeriesPlot);
         dataset.addSeries(temperatureSeriesPlot);
 
-        JFreeChart chart = ChartFactory.createXYLineChart(
-            "Node: " + nodeId + " Water Head and Temperature vs Time",
-            "Time (hours)",
-            "Value (cm or °C)",
-            dataset
-        );
-
-        // Save the chart as an image
+        JFreeChart chart = ChartFactory.createXYLineChart("Water Head and Temperature for Node " + nodeId, "Time (Hours)", "Value", dataset);
         try {
-            ChartUtils.saveChartAsPNG(new File("target/" + nodeId + "_water_head_temp_plot.png"), chart, 800, 600);
-            System.out.println("Chart saved for node: " + nodeId + " (Water Head and Temperature)");
+            File chartFile = new File("target/" + nodeId + "_water_head_temperature_chart.png");
+            ChartUtils.saveChartAsPNG(chartFile, chart, 800, 600);
         } catch (IOException e) {
-            System.out.println("Error saving chart for Node ID: " + nodeId);
+            e.printStackTrace();
         }
     }
 
@@ -229,34 +265,77 @@ public class FetchAndPlotData {
         dataset.addSeries(porePressureSeriesPlot);
         dataset.addSeries(temperatureSeriesPlot);
 
-        JFreeChart chart = ChartFactory.createXYLineChart(
-            "Node: " + nodeId + " Pore Pressure and Temperature vs Time",
-            "Time (hours)",
-            "Value (kPa or °C)",
-            dataset
-        );
-
-        // Save the chart as an image
+        JFreeChart chart = ChartFactory.createXYLineChart("Pore Pressure and Temperature for Node " + nodeId, "Time (Hours)", "Value", dataset);
         try {
-            ChartUtils.saveChartAsPNG(new File("target/" + nodeId + "_pore_pressure_temp_plot.png"), chart, 800, 600);
-            System.out.println("Chart saved for node: " + nodeId + " (Pore Pressure and Temperature)");
+            File chartFile = new File("target/" + nodeId + "_pore_pressure_temperature_chart.png");
+            ChartUtils.saveChartAsPNG(chartFile, chart, 800, 600);
         } catch (IOException e) {
-            System.out.println("Error saving chart for Node ID: " + nodeId);
+            e.printStackTrace();
         }
     }
 
-    // Method to plot map with coordinates
-    public static void plotMapCoordinates(String mapsApiKey, String latitude, String longitude, String nodeId) {
-        try {
-            String mapUrl = "https://maps.googleapis.com/maps/api/staticmap?center=" + latitude + "," + longitude
-                          + "&zoom=14&size=600x300&markers=color:red%7C" + latitude + "," + longitude
-                          + "&key=" + mapsApiKey;
-
-            BufferedImage image = ImageIO.read(new URL(mapUrl));
-            ImageIO.write(image, "png", new File("target/" + nodeId + "_map_coordinates.png"));
-            System.out.println("Map image saved for node: " + nodeId);
+    // Method to create KMZ file with coordinates
+    public static void createKMZFile(List<String> coordinatesList) {
+        try (ZipOutputStream zos = new ZipOutputStream(new FileOutputStream(KMZ_DEST_STRING))) {
+            ZipEntry zipEntry = new ZipEntry("coordinates.txt");
+            zos.putNextEntry(zipEntry);
+            for (String coordinate : coordinatesList) {
+                zos.write((coordinate + "\n").getBytes());
+            }
+            zos.closeEntry();
         } catch (IOException e) {
-            System.out.println("Error fetching map for Node ID: " + nodeId);
+            e.printStackTrace();
+        }
+    }
+
+    // Method to generate Time Series PDF
+    public static void generateTimeSeriesPDF(List<String> nodeIDs) {
+        try (PdfWriter writer = new PdfWriter(NODE_DATAPLOT_DEST_STRING);
+             PdfDocument pdfDocument = new PdfDocument(writer);
+             Document document = new Document(pdfDocument)) {
+
+            for (String nodeId : nodeIDs) {
+                File chartFile = new File("target/" + nodeId + "_water_head_temperature_chart.png");
+                if (chartFile.exists()) {
+                    addImageToDocument(document, chartFile);
+                }
+
+                File porePressureChartFile = new File("target/" + nodeId + "_pore_pressure_temperature_chart.png");
+                if (porePressureChartFile.exists()) {
+                    addImageToDocument(document, porePressureChartFile);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Method to generate Node Coordinates PDF
+    public static void generateNodeCoordinatesPDF(List<String> nodeIDs) {
+        try (PdfWriter writer = new PdfWriter(NODE_COORD_DEST_STRING);
+             PdfDocument pdfDocument = new PdfDocument(writer);
+             Document document = new Document(pdfDocument)) {
+
+            for (String nodeId : nodeIDs) {
+                File coordFile = new File("target/" + nodeId + "_map_coordinates.png");
+                if (coordFile.exists()) {
+                    document.add(new Paragraph("Coordinates for node: " + nodeId));
+                    addImageToDocument(document, coordFile);
+                }
+            }
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Helper method to add images to the PDF document
+    public static void addImageToDocument(Document document, File imageFile) {
+        try {
+            BufferedImage bufferedImage = ImageIO.read(imageFile);
+            Image image = new Image(ImageDataFactory.create(imageFile.getAbsolutePath()));
+            document.add(image);
+        } catch (IOException e) {
+            e.printStackTrace();
         }
     }
 }
