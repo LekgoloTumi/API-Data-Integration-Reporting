@@ -2,11 +2,13 @@ package com;
 
 import java.io.BufferedReader;
 import java.io.FileReader;
+import java.io.IOException;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 
 import org.json.simple.JSONArray;
 import org.json.simple.JSONObject;
 
-import com.itextpdf.io.exceptions.IOException;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
@@ -37,37 +39,50 @@ public class FetchData {
                     Table table = new Table(2);
                     table.addHeaderCell(new Cell().add(new Paragraph("Node ID")));
                     table.addHeaderCell(new Cell().add(new Paragraph("Details")));
+                    ZonedDateTime currentDate = ZonedDateTime.now();
 
                     // Loop through nodes
                     for (Object node : nodesArray) {
                         String nodeId = node.toString();
-                        String fromDateTime = "2023-01-01T00:00:00Z";
-                        String toDateTime = "2023-12-31T23:59:59Z";  
+                        String fromDateTime = "2022-01-01T00:00:00Z";
+                        String toDateTime = currentDate.format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm:ss'Z'"));  
                         String dataUrl = "https://prod.omly.co/rest/v3/reports/" + apiKey + "/gw/" + nodeId + "/export?from=" + fromDateTime + "&to=" + toDateTime;
 
-                        JSONObject nodeData = APIRequest.getApiResponseAsObject(dataUrl);
-
-                        // Extract values from nodeData
-                        String siteName = getStringValue(nodeData, "site-name");
-                        String location = getStringValue(nodeData, "location");
-
-                        // Extracting data from the result array
+                        // Initialize variables for storing node data
+                        String status = "Offline";  // Default to Offline
+                        String siteName = "N/A";
+                        String location = "N/A";
                         String waterHead = "N/A";
                         String date = "N/A";
                         String coordinates = "N/A";
-                        JSONArray resultArray = (JSONArray) nodeData.get("result");
-                        if (resultArray != null && !resultArray.isEmpty()) {
-                            JSONObject resultData = (JSONObject) resultArray.get(0); // Assuming you want the first result
-                            waterHead = getStringValue(resultData, "water-head");
-                            date = getStringValue(resultData, "date-time");
-                            coordinates = getCoordinates(resultData);
+
+                        // Fetch node data and handle potential exceptions
+                        try {
+                            JSONObject nodeData = APIRequest.getApiResponseAsObject(dataUrl);
+                            
+                            // Extract values from nodeData if fetch was successful
+                            siteName = getStringValue(nodeData, "site-name");
+                            location = getStringValue(nodeData, "location");
+
+                            // Extracting data from the result array
+                            JSONArray resultArray = (JSONArray) nodeData.get("result");
+                            if (resultArray != null && !resultArray.isEmpty()) {
+                                JSONObject resultData = (JSONObject) resultArray.get(0); // Assuming you want the first result
+                                waterHead = getStringValue(resultData, "water-head");
+                                date = getStringValue(resultData, "date-time");
+                                coordinates = getCoordinates(resultData);
+                                status = "Online";  // Node is online if data is available
+                            }
+                        } catch (Exception e) {
+                            // If an error occurs, keep the node marked as "Offline"
+                            System.out.println("Error fetching data for Node ID: " + nodeId + ". Marking as Offline.");
                         }
 
                         // Add node ID to the first cell
                         table.addCell(new Cell().add(new Paragraph(nodeId)));
 
                         // Create a formatted string for the details and add it to the second cell
-                        String details = "Status: Online\n" + // Replace "Online" with actual status if available
+                        String details = "Status: " + status + "\n" +
                                          "Site Name: " + siteName + "\n" +
                                          "Location: " + location + "\n" +
                                          "Coordinates: " + coordinates + "\n" +
@@ -87,7 +102,7 @@ public class FetchData {
             }
 
         } catch (IOException e) {
-            System.out.println("Error: " + e.getMessage());
+            System.out.println("File reading error: " + e.getMessage());
         } catch (Exception e) {
             e.printStackTrace();
         }
