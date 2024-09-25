@@ -1,5 +1,7 @@
 package com;
 
+import java.io.FileNotFoundException;
+
 import com.itextpdf.io.exceptions.IOException;
 import com.itextpdf.kernel.pdf.PdfDocument;
 import com.itextpdf.kernel.pdf.PdfWriter;
@@ -25,7 +27,7 @@ public class IntroductionPage {
 
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
-        } catch (Exception e) {
+        } catch (FileNotFoundException e) {
             e.printStackTrace();
         }
     }
