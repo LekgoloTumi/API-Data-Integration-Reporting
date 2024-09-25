@@ -9,7 +9,7 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Paragraph;
 
 public class IntroductionPage {
-    public static final String PDF_DEST_STRING = "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\IntroductionPage.pdf";
+    public static final String PDF_DEST_STRING = "target\\IntroductionPage.pdf";
 
     public static void main(String[] args) throws Exception {
         try {

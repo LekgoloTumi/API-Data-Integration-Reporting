@@ -24,14 +24,14 @@ import com.itextpdf.layout.element.Cell;
 import com.itextpdf.layout.element.Paragraph;
 import com.itextpdf.layout.element.Table;
 
-public class FetchData {
+public class FetchAndPlotData {
 
-    public static final String PDF_DEST_STRING = "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\TablePage.pdf";
+    public static final String PDF_DEST_STRING = "target\\TablePage.pdf";
 
     public static void main(String[] args) {
         try {
             String apiKey;
-            try (BufferedReader reader = new BufferedReader(new FileReader("C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\src\\main\\resources\\api_key.txt"))) {
+            try (BufferedReader reader = new BufferedReader(new FileReader("src\\main\\resources\\api_key.txt"))) {
                 apiKey = reader.readLine().trim();
             }
 
@@ -206,7 +206,7 @@ public class FetchData {
 
         // Save the chart as an image
         try {
-            ChartUtils.saveChartAsPNG(new File(nodeId + "_water_head_temp_plot.png"), chart, 800, 600);
+            ChartUtils.saveChartAsPNG(new File("target\\" + nodeId + "_water_head_temp_plot.png"), chart, 800, 600);
             System.out.println("Chart saved for node: " + nodeId + " (Water Head and Temperature)");
         } catch (IOException e) {
             System.out.println("Error saving chart for Node ID: " + nodeId);
@@ -240,7 +240,7 @@ public class FetchData {
 
         // Save the chart as an image
         try {
-            ChartUtils.saveChartAsPNG(new File(nodeId + "_pore_pressure_temp_plot.png"), chart, 800, 600);
+            ChartUtils.saveChartAsPNG(new File("target\\" + nodeId + "_pore_pressure_temp_plot.png"), chart, 800, 600);
             System.out.println("Chart saved for node: " + nodeId + " (Pore Pressure and Temperature)");
         } catch (IOException e) {
             System.out.println("Error saving chart for Node ID: " + nodeId);

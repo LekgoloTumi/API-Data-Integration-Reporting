@@ -9,10 +9,10 @@ import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
 
 public class FrontPage {
-    public static final String PDF_DEST_STRING = "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\target\\FrontPage.pdf";
+    public static final String PDF_DEST_STRING = "target\\FrontPage.pdf";
 
     public static final String[] IMAGES = {
-        "C:\\Users\\lekgo\\OneDrive\\Documents\\Groundwork\\GroundWork\\src\\main\\resources\\image\\ImperialLogo.png"
+        "src\\main\\resources\\image\\ImperialLogo.png"
     };
 
     public static void main(String[] args) throws Exception {
