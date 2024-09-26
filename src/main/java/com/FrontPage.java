@@ -8,12 +8,17 @@ import com.itextpdf.kernel.pdf.PdfWriter;
 import com.itextpdf.layout.Document;
 import com.itextpdf.layout.element.Image;
 
-public class FrontPage {
-    public static final String PDF_DEST_STRING = "target\\FrontPage.pdf";
+import io.github.cdimascio.dotenv.Dotenv;
 
-    public static final String[] IMAGES = {
-        "src\\main\\resources\\image\\ImperialLogo.png"
-    };
+public class FrontPage {
+    // Load environment variables
+    private static final Dotenv dotenv = Dotenv.load();
+    
+    // PDF destination path from .env or default value
+    public static final String PDF_DEST_STRING = dotenv.get("FRONT_PAGE");
+
+    // Image path from .env or default value
+    public static final String IMAGE_PATH = dotenv.get("FRONT_PAGE_IMAGE");
 
     public static void main(String[] args) throws Exception {
         try {
@@ -23,12 +28,12 @@ public class FrontPage {
             Document document = new Document(pdf);
 
             // Front Page with company logo
-            ImageData imgData = ImageDataFactory.create(IMAGES[0]);
+            ImageData imgData = ImageDataFactory.create(IMAGE_PATH);
             Image img = new Image(imgData);
             document.add(img);  // Add logo to the front page
 
             document.close();
-            System.out.println("Pdf created successfully.");
+            System.out.println("PDF created successfully.");
 
         } catch (IOException e) {
             System.out.println("Error: " + e.getMessage());
