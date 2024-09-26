@@ -23,4 +23,4 @@ The project includes the following scripts:
 ## Install Dependencies
 
 To install all dependencies before running any of the scripts 
-**Use this command: mvn clean install**
+**use this command: mvn clean install**
