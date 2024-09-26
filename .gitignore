@@ -32,8 +32,6 @@ build/
 ### VS Code ###
 .vscode/
 
-## API Keys ###
-api_key.txt
-maps.api_key.txt
-*.properties
-/target/
+### Ignore these files ###
+*.env
+*.xml
