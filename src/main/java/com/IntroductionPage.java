@@ -26,7 +26,7 @@ public class IntroductionPage {
 
             // Introduction content
             document.add(new Paragraph("Introduction:" + "\n"));
-            document.add(new Paragraph("The report aims to conduct a thorough analysis of sensor data obtained from the Groundwork API. Our primary objective is to improve our understanding of sensor parameters over time, identify any irregularities, and assess the reliability of the sensor network. The main goal is to visually present the data to identify trends and anomalies, ultimately creating a comprehensive summary of the sensor parameters, including visual location plots of the coordinates of each of the nodes that are online."));
+            document.add(new Paragraph("The report aims to conduct a thorough analysis of sensor data obtained from the API. Our primary objective is to improve our understanding of sensor parameters over time, identify any irregularities, and assess the reliability of the sensor network. The main goal is to visually present the data to identify trends and anomalies, ultimately creating a comprehensive summary of the sensor parameters, including visual location plots of the coordinates of each of the nodes that are online."));
 
             document.close();
             System.out.println("PDF created successfully.");
